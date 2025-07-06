@@ -132,6 +132,8 @@ public class HybridHash {
 
         while (true) {
             idxOrigin = this.hashOrigin(t.getOrigin(), attempts);
+            // System.out.printf("[DEBUG] Tentando inserir origem %s na tentativa %d (idx %d)\n", t.getOrigin(), attempts, idxOrigin);
+
             if (attempts == 0) {
                 first_origin = idxOrigin;
                 assignments++;
@@ -154,24 +156,22 @@ public class HybridHash {
 
             entry = table[first_origin];
 
-            if (entry.originStructure instanceof Transaction otherT &&
-                    otherT.getOrigin().equals(t.getOrigin())) {
+            if (entry.originStructure instanceof Transaction) {
                 comparisons++;
-                AVLTree<String, Transaction> avlTree = new AVLTree<>();
-                avlTree.insert(otherT.getOrigin(), otherT);
-                avlTree.insert(t.getOrigin(), t);
-                entry.originStructure = avlTree;
-                assignments++;
+                LinkedList<Transaction> list = new LinkedList<>();
+                list.add((Transaction) entry.originStructure);
+                list.add(t);
+                entry.originStructure = list;
+                entry.originInsertions = 2;
+                assignments += 3;
                 break;
-            }
 
-            if (entry.originStructure instanceof List<?> list &&
-                    !list.isEmpty() &&
-                    list.get(0) instanceof Transaction tx &&
-                    tx.getOrigin().equals(t.getOrigin())) {
+            } else if (entry.originStructure instanceof LinkedList<?> rawList &&
+                    !rawList.isEmpty() &&
+                    rawList.getFirst() instanceof Transaction) {
 
                 @SuppressWarnings("unchecked")
-                List<Transaction> castList = (List<Transaction>) list;
+                LinkedList<Transaction> castList = (LinkedList<Transaction>) rawList;
                 castList.add(t);
                 entry.originInsertions++;
                 entry.originCollisions++;
@@ -179,7 +179,7 @@ public class HybridHash {
                 comparisons++;
 
                 if (entry.originInsertions > 3) {
-                    System.out.printf("[INFO] Converting List at index %d to AVLTree (by Origin)%n", idxOrigin);
+                    System.out.printf("[INFO] Converting LinkedList at index %d to AVLTree (by Origin)%n", idxOrigin);
                     AVLTree<String, Transaction> avlTree = new AVLTree<>();
                     for (Transaction txx : castList) {
                         avlTree.insert(txx.getOrigin(), txx);
@@ -190,9 +190,8 @@ public class HybridHash {
                     assignments += 2;
                 }
                 break;
-            }
 
-            if (entry.originStructure instanceof AVLTree<?, ?> tree) {
+            } else if (entry.originStructure instanceof AVLTree<?, ?> tree) {
                 @SuppressWarnings("unchecked")
                 AVLTree<String, Transaction> avl = (AVLTree<String, Transaction>) tree;
                 avl.insert(t.getOrigin(), t);
@@ -212,9 +211,8 @@ public class HybridHash {
                     assignments += 2;
                 }
                 break;
-            }
 
-            if (entry.originStructure instanceof RBTree<?, ?> tree) {
+            } else if (entry.originStructure instanceof RBTree<?, ?> tree) {
                 @SuppressWarnings("unchecked")
                 RBTree<String, Transaction> rb = (RBTree<String, Transaction>) tree;
                 rb.insert(t.getOrigin(), t);

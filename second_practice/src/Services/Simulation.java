@@ -3,29 +3,38 @@ package Services;
 import Models.HybridHash;
 import Models.Transaction;
 
-import java.io.FileWriter;
-import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 
 public class Simulation {
 
     public static SimulationResult runSimulation(List<Transaction> transactions) {
+        System.out.printf("Iniciando simulação com %d transações...%n", transactions.size());
+
         HybridHash hash = new HybridHash(512);
 
+        int insertions = 1;
+
         long startTime = System.nanoTime();
-        for (Transaction t : transactions) {
-            hash.insert(t);
+        try {
+            for (Transaction t : transactions) {
+                hash.insert(t);
+                // System.out.printf("Inserindo transação de número %d.%n", insertions++);
+            }
+        } catch (Exception e) {
+            System.err.println("[EXCEÇÃO DETECTADA] " + e.getMessage());
+            e.printStackTrace();
         }
         long endTime = System.nanoTime();
 
         long durationMillis = (endTime - startTime) / 1_000_000;
 
-        return new SimulationResult(
-                hash.getComparisons(),
-                hash.getAssignments(),
-                durationMillis
-        );
+        int comparisons = hash.getComparisons();
+        int assignments = hash.getAssignments();
+
+        System.out.printf("Finalizado em %d ms | Comparações: %d | Atribuições: %d%n",
+                durationMillis, comparisons, assignments);
+
+        return new SimulationResult(comparisons, assignments, durationMillis);
     }
 
     public static class SimulationResult {

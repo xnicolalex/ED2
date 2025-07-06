@@ -7,7 +7,7 @@ import java.util.List;
 
 public class Statistics {
 
-    private static final int[] RECORD_COUNTS = {10, 100, 1000, 10000};
+    private static final int[] RECORD_COUNTS = {10, 100, 1000, 10000, 100000};
     private static final int RUNS_PER_CASE = 10;
 
     public static void main(String[] args) {

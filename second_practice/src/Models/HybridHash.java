@@ -1,108 +1,253 @@
 package Models;
 
-public class HybridHash<Key, Value>{
-    private int N; // numero de pares de chaves na tabela
-    private int M = 512; // Tamanho da tabela hash com tratamento linear
-    private Key[] keys; // the keys
-    private Value[] vals; // the values
+import java.util.*;
 
-    public HybridHash() {
-        keys = (Key[]) new Object[M];
-        vals = (Value[]) new Object[M];
+public class HybridHash {
+
+    private static class Entry {
+        Object originStructure = null;
+        int originCollisions = 0;
+        int originInsertions = 0;
     }
 
-    public HybridHash(int cap) {
-        keys = (Key[]) new Object[cap];
-        vals = (Value[]) new Object[cap];
-        M = cap;
+    private int size;
+    private Entry[] table;
+
+    private int comparisons = 0;
+    private int assignments = 0;
+
+    public HybridHash(int size) {
+        this.size = size;
+        table = new Entry[this.size];
+        for (int i = 0; i < this.size; i++) {
+            table[i] = new Entry();
+            assignments++;
+        }
     }
 
-    /**
-     * Calcula o Hash
-     * @param key
-     * @return
-     */
-    private int hash(Key key){
-        // Implementar a função de Hash aqui.
-        return 0;
+    private int hashId(String id) {
+        comparisons++;
+        return (id.hashCode() & 0x7fffffff) % this.size;
     }
 
-    /**
-     * Redimensiona a tabela de acordo com a quantidade de chaves.
-     * @param cap
-     */
-    private void resize(int cap) {
-
-        HybridHash<Key, Value> t;
-        t = new HybridHash<Key, Value>(cap);
-
-        for (int i = 0; i < keys.length; i++)
-            if (keys[i] != null)
-                t.put(keys[i], vals[i]);
-        keys = t.keys;
-        vals = t.vals;
-        M = t.M;
-
+    private int hashOrigin(String origin, int attempt) {
+        comparisons++;
+        int h = (origin.hashCode() & 0x7fffffff) % this.size;
+        return (h + attempt * attempt) % this.size;
     }
 
-    public boolean contains(Key key) {
-        if (key == null) {
-            throw new IllegalArgumentException("Argument to contains() cannot be null");
+    public List<Transaction> searchById(String id) {
+        int idx = hashId(id);
+        Entry entry = table[idx];
+        List<Transaction> result = new ArrayList<>();
+
+        if (entry.originStructure instanceof LinkedList<?>) {
+            for (Object o : (LinkedList<?>) entry.originStructure) {
+                comparisons++;
+                if (o instanceof Transaction t && t.getId().equals(id)) {
+                    result.add(t);
+                }
+            }
+        } else if (entry.originStructure instanceof AVLTree<?, ?> tree) {
+            @SuppressWarnings("unchecked")
+            AVLTree<String, Transaction> avl = (AVLTree<String, Transaction>) tree;
+            Transaction found = avl.find(id);
+            comparisons++;
+            if (found != null) result.add(found);
+        } else if (entry.originStructure instanceof RBTree<?, ?> tree) {
+            @SuppressWarnings("unchecked")
+            RBTree<String, Transaction> rb = (RBTree<String, Transaction>) tree;
+            Transaction found = rb.find(id);
+            comparisons++;
+            if (found != null) result.add(found);
         }
 
-        return get(key) != null;
+        return result;
     }
 
-    /**
-     * Insere um novo objeto no Hash
-     * @param key
-     * @param val
-     */
-    public void put(Key key, Value val) {
-        // Implementar
+    public void insert(Transaction t) {
+        insertById(t);
+        insertByOrigin(t);
     }
 
-    /**
-     * Remove um objeto do Hash
-     * @param key
-     */
-    public void delete(Key key)
-    {
-        if (key == null)
-            throw new IllegalArgumentException("Argument to delete() cannot be null");
+    private void insertById(Transaction t) {
+        int idx = hashId(t.getId());
+        Entry entry = table[idx];
 
-        if (!contains(key))
-            return;
+        if (entry.originStructure == null) {
+            LinkedList<Transaction> list = new LinkedList<>();
+            list.add(t);
+            entry.originStructure = list;
+            entry.originInsertions = 1;
+            assignments += 3;
+        } else if (entry.originStructure instanceof LinkedList<?>) {
+            @SuppressWarnings("unchecked")
+            LinkedList<Transaction> list = (LinkedList<Transaction>) entry.originStructure;
+            list.add(t);
+            entry.originInsertions++;
+            assignments += 2;
 
-        int i = hash(key);
-        while (!key.equals(keys[i]))
-            i = (i + 1) % M;
+            if (entry.originInsertions > 3) {
+                System.out.printf("[INFO] Converting LinkedList at index %d to AVLTree (by ID)%n", idx);
+                AVLTree<String, Transaction> avl = new AVLTree<>();
+                for (Transaction tx : list) {
+                    avl.insert(tx.getId(), tx);
+                    comparisons++;
+                }
+                entry.originStructure = avl;
+                entry.originInsertions = 0;
+                assignments += 2;
+            }
+        } else if (entry.originStructure instanceof AVLTree<?, ?> tree) {
+            @SuppressWarnings("unchecked")
+            AVLTree<String, Transaction> avl = (AVLTree<String, Transaction>) tree;
+            avl.insert(t.getId(), t);
+            comparisons++;
+            entry.originInsertions++;
+            assignments++;
 
-        keys[i] = null;
-        vals[i] = null;
-        i = (i + 1) % M;
-
-        while (keys[i] != null){
-            Key keyToRedo = keys[i];
-            Value valToRedo = vals[i];
-            keys[i] = null;
-            vals[i] = null;
-            N--;
-            put(keyToRedo, valToRedo);
-            i = (i + 1) % M;
+            if (entry.originInsertions > 10) {
+                System.out.printf("[INFO] Converting AVLTree at index %d to RBTree (by ID)%n", idx);
+                RBTree<String, Transaction> rb = new RBTree<>();
+                for (Transaction tx : avl.inOrder()) {
+                    rb.insert(tx.getId(), tx);
+                    comparisons++;
+                }
+                entry.originStructure = rb;
+                entry.originInsertions = 0;
+                assignments += 2;
+            }
+        } else if (entry.originStructure instanceof RBTree<?, ?> tree) {
+            @SuppressWarnings("unchecked")
+            RBTree<String, Transaction> rb = (RBTree<String, Transaction>) tree;
+            rb.insert(t.getId(), t);
+            comparisons++;
         }
-        N--;
-        if (N > 0 && N == M/8)
-            resize(M/2);
     }
 
-    /**
-     * Busca um objeto no Hash
-     * @param key
-     * @return
-     */
-    public Value get(Key key) {
-        // Implementar
-        return null;
+    private void insertByOrigin(Transaction t) {
+        int attempts = 0;
+        int first_origin = 0;
+        int idxOrigin;
+
+        while (true) {
+            idxOrigin = this.hashOrigin(t.getOrigin(), attempts);
+            if (attempts == 0) {
+                first_origin = idxOrigin;
+                assignments++;
+            }
+
+            Entry entry = table[idxOrigin];
+
+            if (entry.originStructure == null) {
+                entry.originStructure = t;
+                entry.originCollisions = 0;
+                entry.originInsertions = 1;
+                assignments += 3;
+                break;
+            }
+
+            if (attempts < 4) {
+                attempts++;
+                continue;
+            }
+
+            entry = table[first_origin];
+
+            if (entry.originStructure instanceof Transaction otherT &&
+                    otherT.getOrigin().equals(t.getOrigin())) {
+                comparisons++;
+                AVLTree<String, Transaction> avlTree = new AVLTree<>();
+                avlTree.insert(otherT.getOrigin(), otherT);
+                avlTree.insert(t.getOrigin(), t);
+                entry.originStructure = avlTree;
+                assignments++;
+                break;
+            }
+
+            if (entry.originStructure instanceof List<?> list &&
+                    !list.isEmpty() &&
+                    list.get(0) instanceof Transaction tx &&
+                    tx.getOrigin().equals(t.getOrigin())) {
+
+                @SuppressWarnings("unchecked")
+                List<Transaction> castList = (List<Transaction>) list;
+                castList.add(t);
+                entry.originInsertions++;
+                entry.originCollisions++;
+                assignments += 2;
+                comparisons++;
+
+                if (entry.originInsertions > 3) {
+                    System.out.printf("[INFO] Converting List at index %d to AVLTree (by Origin)%n", idxOrigin);
+                    AVLTree<String, Transaction> avlTree = new AVLTree<>();
+                    for (Transaction txx : castList) {
+                        avlTree.insert(txx.getOrigin(), txx);
+                        comparisons++;
+                    }
+                    entry.originStructure = avlTree;
+                    entry.originInsertions = 0;
+                    assignments += 2;
+                }
+                break;
+            }
+
+            if (entry.originStructure instanceof AVLTree<?, ?> tree) {
+                @SuppressWarnings("unchecked")
+                AVLTree<String, Transaction> avl = (AVLTree<String, Transaction>) tree;
+                avl.insert(t.getOrigin(), t);
+                comparisons++;
+                entry.originInsertions++;
+                assignments++;
+
+                if (entry.originInsertions > 10) {
+                    System.out.printf("[INFO] Converting AVLTree at index %d to RBTree (by Origin)%n", idxOrigin);
+                    RBTree<String, Transaction> rb = new RBTree<>();
+                    for (Transaction txx : avl.inOrder()) {
+                        rb.insert(txx.getOrigin(), txx);
+                        comparisons++;
+                    }
+                    entry.originStructure = rb;
+                    entry.originInsertions = 0;
+                    assignments += 2;
+                }
+                break;
+            }
+
+            if (entry.originStructure instanceof RBTree<?, ?> tree) {
+                @SuppressWarnings("unchecked")
+                RBTree<String, Transaction> rb = (RBTree<String, Transaction>) tree;
+                rb.insert(t.getOrigin(), t);
+                comparisons++;
+                break;
+            }
+        }
+    }
+
+    public void printTable() {
+        for (int i = 0; i < this.size; i++) {
+            Entry e = table[i];
+            if (e.originStructure != null) {
+                System.out.print("[" + i + "] STRUCT: ");
+                if (e.originStructure instanceof Transaction t)
+                    System.out.print(t);
+                else if (e.originStructure instanceof List<?> list)
+                    System.out.print(list);
+                else if (e.originStructure instanceof AVLTree<?, ?>)
+                    System.out.print("[AVLTree]");
+                else if (e.originStructure instanceof RBTree<?, ?>)
+                    System.out.print("[RBTree]");
+                System.out.println();
+            }
+        }
+    }
+
+    public int getComparisons() { return comparisons; }
+
+    public int getAssignments() { return assignments; }
+
+    public void resetCounters() {
+        comparisons = 0;
+        assignments = 0;
     }
 }

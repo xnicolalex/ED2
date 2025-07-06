@@ -1,267 +1,179 @@
 package Models;
+import java.util.*;
 
-class NodeRB<AnyType> {
-    private AnyType element;
-    private NodeRB<AnyType> parent, left, right;
-    private Color color; // RED or BLACK
-    int N; // subtree size counter
+class NodeRB<K extends Comparable<K>, V> {
+    private TreeNode<K, V> pair;
+    private NodeRB<K, V> left, right;
+    private Color color;
 
-    enum Color {
-        RED, BLACK
-    }
+    enum Color { RED, BLACK }
 
-    public NodeRB(AnyType element) {
-        this(element, null, null);
-    }
-
-    public NodeRB(AnyType element, NodeRB<AnyType> left, NodeRB<AnyType> right) {
-        this.element = element;
-        this.left = left;
-        this.right = right;
+    public NodeRB(TreeNode<K, V> pair) {
+        this.pair = pair;
         this.color = Color.RED;
     }
 
-    public AnyType getElement() {
-        return this.element;
-    }
+    public K getKey() { return pair.getKey(); }
+    public V getValue() { return pair.getValue(); }
+    public void setValue(V value) { this.pair.setValue(value); }
 
-    public void setElement(AnyType element) {
-        this.element = element;
-    }
+    public NodeRB<K, V> getLeft() { return left; }
+    public void setLeft(NodeRB<K, V> left) { this.left = left; }
 
-    public NodeRB<AnyType> getLeft() {
-        return this.left;
-    }
+    public NodeRB<K, V> getRight() { return right; }
+    public void setRight(NodeRB<K, V> right) { this.right = right; }
 
-    public void setLeft(NodeRB<AnyType> left) {
-        this.left = left;
-    }
+    public Color getColor() { return color; }
+    public void setColor(Color color) { this.color = color; }
 
-    public NodeRB<AnyType> getRight() {
-        return this.right;
-    }
-
-    public void setRight(NodeRB<AnyType> right) {
-        this.right = right;
-    }
-
-    public NodeRB<AnyType> getParent() {
-        return this.parent;
-    }
-
-    public void setParent(NodeRB<AnyType> parent) {
-        this.parent = parent;
-    }
-
-    public boolean isRed() {
-        return this.color == Color.RED;
-    }
-
-    public Color getColor() {
-        return this.color;
-    }
-
-    public void setColor(Color color) {
-        this.color = color;
-    }
+    public boolean isRed() { return color == Color.RED; }
 }
 
+public class RBTree<K extends Comparable<K>, V> implements BalancedTree<K, V> {
+    private NodeRB<K, V> root;
+    private int comparisons = 0;
+    private int assignments = 0;
 
-public class RBTree<T extends Comparable<T>> implements BalancedTree<T> {
-    private NodeRB<T> root;
-
-    private boolean isRed(NodeRB<T> node) {
+    private boolean isRed(NodeRB<K, V> node) {
+        comparisons++;
         return node != null && node.isRed();
     }
 
-    private NodeRB<T> rotateLeft(NodeRB<T> parent) {
-        System.out.println("Left rotation at " + parent.getElement());
-
-        NodeRB<T> newRoot = parent.getRight();
-        parent.setRight(newRoot.getLeft());
-        newRoot.setLeft(parent);
-        newRoot.setColor(parent.getColor());
-        parent.setColor(NodeRB.Color.RED);
-        return newRoot;
+    private NodeRB<K, V> rotateLeft(NodeRB<K, V> h) {
+        NodeRB<K, V> x = h.getRight(); assignments++;
+        h.setRight(x.getLeft()); assignments++;
+        x.setLeft(h); assignments++;
+        x.setColor(h.getColor()); assignments++;
+        h.setColor(NodeRB.Color.RED); assignments++;
+        return x;
     }
 
-    private NodeRB<T> rotateRight(NodeRB<T> parent) {
-        System.out.println("Right rotation at " + parent.getElement());
-
-        NodeRB<T> newRoot = parent.getLeft();
-        parent.setLeft(newRoot.getRight());
-        newRoot.setRight(parent);
-        newRoot.setColor(parent.getColor());
-        parent.setColor(NodeRB.Color.RED);
-        return newRoot;
+    private NodeRB<K, V> rotateRight(NodeRB<K, V> h) {
+        NodeRB<K, V> x = h.getLeft(); assignments++;
+        h.setLeft(x.getRight()); assignments++;
+        x.setRight(h); assignments++;
+        x.setColor(h.getColor()); assignments++;
+        h.setColor(NodeRB.Color.RED); assignments++;
+        return x;
     }
 
-    private void flipColors(NodeRB<T> node) {
-        System.out.println("Color flip at " + node.getElement());
-        node.setColor(NodeRB.Color.RED);
-        if (node.getLeft() != null) {
-            node.getLeft().setColor(NodeRB.Color.BLACK);
+    private void flipColors(NodeRB<K, V> h) {
+        h.setColor(NodeRB.Color.RED); assignments++;
+        if (h.getLeft() != null) {
+            comparisons++;
+            h.getLeft().setColor(NodeRB.Color.BLACK); assignments++;
         }
-        if (node.getRight() != null) {
-            node.getRight().setColor(NodeRB.Color.BLACK);
+        if (h.getRight() != null) {
+            comparisons++;
+            h.getRight().setColor(NodeRB.Color.BLACK); assignments++;
         }
-    }
-
-    private NodeRB<T> moveRedLeft(NodeRB<T> node) {
-        this.flipColors(node);
-        if (node.getRight() != null && this.isRed(node.getRight().getLeft())) {
-            node.setRight(this.rotateRight(node.getRight()));
-            node = this.rotateLeft(node);
-        }
-        return node;
-    }
-
-    private NodeRB<T> moveRedRight(NodeRB<T> node) {
-        this.flipColors(node);
-        if (node.getLeft() != null && this.isRed(node.getLeft().getLeft())) {
-            node = this.rotateRight(node);
-        }
-        return node;
-    }
-
-    private NodeRB<T> fixUp(NodeRB<T> node) {
-        if (this.isRed(node.getRight()))
-            node = this.rotateLeft(node);
-        if (this.isRed(node.getLeft()) && this.isRed(node.getLeft().getLeft()))
-            node = this.rotateRight(node);
-        if (this.isRed(node.getLeft()) && this.isRed(node.getRight()))
-            this.flipColors(node);
-        return node;
     }
 
     @Override
-    public void insert(T value) {
-        this.root = this.insert(this.root, value);
-        this.root.setColor(NodeRB.Color.BLACK);
+    public void insert(K key, V value) {
+        root = insert(root, key, value);
+        root.setColor(NodeRB.Color.BLACK); assignments++;
     }
 
-    private NodeRB<T> insert(NodeRB<T> current, T value) {
-        if (current == null) return new NodeRB<>(value);
+    private NodeRB<K, V> insert(NodeRB<K, V> h, K key, V value) {
+        if (h == null) {
+            assignments++;
+            return new NodeRB<>(new TreeNode<>(key, value));
+        }
 
-        int cmp = value.compareTo(current.getElement());
+        comparisons++;
+        int cmp = key.compareTo(h.getKey());
+
         if (cmp < 0) {
-            current.setLeft(this.insert(current.getLeft(), value));
+            h.setLeft(insert(h.getLeft(), key, value)); assignments++;
         } else if (cmp > 0) {
-            current.setRight(this.insert(current.getRight(), value));
-        }
-
-        if (this.isRed(current.getRight()) && !this.isRed(current.getLeft()))
-            current = this.rotateLeft(current);
-        if (this.isRed(current.getLeft()) && this.isRed(current.getLeft().getLeft()))
-            current = this.rotateRight(current);
-        if (this.isRed(current.getLeft()) && this.isRed(current.getRight()))
-            this.flipColors(current);
-
-        return current;
-    }
-
-    @Override
-    public boolean remove(T value) {
-        if (!this.find(value)) return false;
-
-        if (!this.isRed(this.root.getLeft()) && !this.isRed(this.root.getRight())) {
-            this.root.setColor(NodeRB.Color.RED);
-        }
-
-        this.root = this.remove(this.root, value);
-
-        if (this.root != null) {
-            this.root.setColor(NodeRB.Color.BLACK);
-        }
-
-        return true;
-    }
-
-    private NodeRB<T> remove(NodeRB<T> current, T value) {
-        if (value.compareTo(current.getElement()) < 0) {
-            if (!this.isRed(current.getLeft()) && !this.isRed(current.getLeft().getLeft())) {
-                current = this.moveRedLeft(current);
-            }
-            current.setLeft(this.remove(current.getLeft(), value));
+            h.setRight(insert(h.getRight(), key, value)); assignments++;
         } else {
-            if (this.isRed(current.getLeft())) {
-                current = this.rotateRight(current);
-            }
-
-            if (value.compareTo(current.getElement()) == 0 && current.getRight() == null) {
-                return null;
-            }
-
-            if (!this.isRed(current.getRight()) && !this.isRed(current.getRight().getLeft())) {
-                current = this.moveRedRight(current);
-            }
-
-            if (value.compareTo(current.getElement()) == 0) {
-                NodeRB<T> minNode = this.findMin(current.getRight());
-                current.setElement(minNode.getElement());
-                current.setRight(this.removeMin(current.getRight()));
-            } else {
-                current.setRight(this.remove(current.getRight(), value));
-            }
+            h.setValue(value); assignments++;
         }
 
-        return this.fixUp(current);
-    }
-
-    private NodeRB<T> findMin(NodeRB<T> node) {
-        while (node.getLeft() != null) {
-            node = node.getLeft();
+        if (isRed(h.getRight()) && !isRed(h.getLeft())) {
+            comparisons++;
+            h = rotateLeft(h); assignments++;
         }
-        return node;
-    }
-
-    private NodeRB<T> removeMin(NodeRB<T> node) {
-        if (node.getLeft() == null) return null;
-
-        if (!this.isRed(node.getLeft()) && !this.isRed(node.getLeft().getLeft())) {
-            node = this.moveRedLeft(node);
+        if (isRed(h.getLeft()) && isRed(h.getLeft().getLeft())) {
+            comparisons++;
+            h = rotateRight(h); assignments++;
+        }
+        if (isRed(h.getLeft()) && isRed(h.getRight())) {
+            comparisons++;
+            flipColors(h);
         }
 
-        node.setLeft(this.removeMin(node.getLeft()));
-        return this.fixUp(node);
+        return h;
     }
 
     @Override
-    public boolean find(T value) {
-        NodeRB<T> current = this.root;
-        while (current != null) {
-            int cmp = value.compareTo(current.getElement());
+    public V find(K key) {
+        NodeRB<K, V> x = root;
+        while (x != null) {
+            comparisons++;
+            int cmp = key.compareTo(x.getKey());
+
             if (cmp < 0) {
-                current = current.getLeft();
+                x = x.getLeft(); assignments++;
             } else if (cmp > 0) {
-                current = current.getRight();
+                x = x.getRight(); assignments++;
             } else {
-                return true;
+                return x.getValue();
             }
         }
-        return false;
+        return null;
+    }
+
+    @Override
+    public boolean remove(K key) {
+        throw new UnsupportedOperationException("Remove not implemented");
     }
 
     @Override
     public int getHeight() {
-        return this.calculateHeight(this.root);
+        return height(root);
     }
 
-    private int calculateHeight(NodeRB<T> node) {
+    private int height(NodeRB<K, V> node) {
+        comparisons++;
         if (node == null) return -1;
-        return 1 + Math.max(this.calculateHeight(node.getLeft()), this.calculateHeight(node.getRight()));
+        return 1 + Math.max(height(node.getLeft()), height(node.getRight()));
     }
 
     @Override
     public void printInOrder() {
-        this.printInOrder(this.root);
+        printInOrder(root);
     }
 
-    private void printInOrder(NodeRB<T> node) {
+    private void printInOrder(NodeRB<K, V> node) {
         if (node != null) {
-            this.printInOrder(node.getLeft());
-            System.out.print(node.getElement() + " ");
-            this.printInOrder(node.getRight());
+            printInOrder(node.getLeft());
+            System.out.println(node.getKey() + " -> " + node.getValue());
+            printInOrder(node.getRight());
         }
+    }
+
+    public List<V> inOrder() {
+        List<V> result = new ArrayList<>();
+        inOrder(root, result);
+        return result;
+    }
+
+    private void inOrder(NodeRB<K, V> node, List<V> result) {
+        if (node != null) {
+            inOrder(node.getLeft(), result);
+            result.add(node.getValue());
+            inOrder(node.getRight(), result);
+        }
+    }
+
+    public int getComparisons() { return comparisons; }
+    public int getAssignments() { return assignments; }
+
+    public void resetCounters() {
+        comparisons = 0;
+        assignments = 0;
     }
 }

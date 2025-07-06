@@ -1,17 +1,17 @@
 package Models;
 
-public class HashTentativaLinear<Key, Value>{
+public class HybridHash<Key, Value>{
     private int N; // numero de pares de chaves na tabela
     private int M = 512; // Tamanho da tabela hash com tratamento linear
     private Key[] keys; // the keys
     private Value[] vals; // the values
 
-    public HashTentativaLinear() {
+    public HybridHash() {
         keys = (Key[]) new Object[M];
         vals = (Value[]) new Object[M];
     }
 
-    public HashTentativaLinear(int cap) {
+    public HybridHash(int cap) {
         keys = (Key[]) new Object[cap];
         vals = (Value[]) new Object[cap];
         M = cap;
@@ -33,8 +33,8 @@ public class HashTentativaLinear<Key, Value>{
      */
     private void resize(int cap) {
 
-        HashTentativaLinear<Key, Value> t;
-        t = new HashTentativaLinear<Key, Value> (cap);
+        HybridHash<Key, Value> t;
+        t = new HybridHash<Key, Value>(cap);
 
         for (int i = 0; i < keys.length; i++)
             if (keys[i] != null)

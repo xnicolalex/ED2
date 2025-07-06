@@ -10,8 +10,14 @@ import java.util.List;
 
 public class DatasetReader {
 
-    public static List<Transaction> readFromCSV(String filePath) {
-        List<Transaction> transactions = new ArrayList<>();
+    private final List<Transaction> transactions;
+
+    public DatasetReader() {
+        this.transactions = new ArrayList<>();
+    }
+
+    public void readFromCSV(String filePath) {
+        transactions.clear();
 
         try (BufferedReader br = new BufferedReader(new FileReader(filePath))) {
             String line;
@@ -19,7 +25,7 @@ public class DatasetReader {
 
             while ((line = br.readLine()) != null) {
                 if (header) {
-                    header = false; // Skip header
+                    header = false;
                     continue;
                 }
 
@@ -29,11 +35,10 @@ public class DatasetReader {
                 String id = parts[0];
                 String origem = parts[1];
                 String destino = parts[2];
-                double valor = Double.parseDouble(parts[3].replace(",", ".")); // Replace comma if needed
+                double valor = Double.parseDouble(parts[3].replace(",", ".")); // se vier com vírgula
                 String timestamp = parts[4];
 
-                Transaction t = new Transaction(id, origem, destino, timestamp, valor);
-                transactions.add(t);
+                transactions.add(new Transaction(id, origem, destino, timestamp, valor));
             }
 
             System.out.println("Arquivo lido com sucesso. Total de transações: " + transactions.size());
@@ -41,12 +46,9 @@ public class DatasetReader {
         } catch (IOException e) {
             System.err.println("Erro ao ler o arquivo: " + e.getMessage());
         }
-
-        return transactions;
     }
 
-    public static void main(String[] args) {
-        List<Transaction> lista = readFromCSV("transacoes.csv");
-        lista.stream().limit(10).forEach(System.out::println);
+    public List<Transaction> getTransactions() {
+        return transactions;
     }
 }

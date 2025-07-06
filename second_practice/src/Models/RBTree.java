@@ -4,7 +4,7 @@ class NodeRB<AnyType> {
     private AnyType element;
     private NodeRB<AnyType> parent, left, right;
     private Color color; // RED or BLACK
-    int N; // conta subarvores
+    int N; // subtree size counter
 
     enum Color {
         RED, BLACK
@@ -22,7 +22,7 @@ class NodeRB<AnyType> {
     }
 
     public AnyType getElement() {
-        return element;
+        return this.element;
     }
 
     public void setElement(AnyType element) {
@@ -30,7 +30,7 @@ class NodeRB<AnyType> {
     }
 
     public NodeRB<AnyType> getLeft() {
-        return left;
+        return this.left;
     }
 
     public void setLeft(NodeRB<AnyType> left) {
@@ -38,7 +38,7 @@ class NodeRB<AnyType> {
     }
 
     public NodeRB<AnyType> getRight() {
-        return right;
+        return this.right;
     }
 
     public void setRight(NodeRB<AnyType> right) {
@@ -46,7 +46,7 @@ class NodeRB<AnyType> {
     }
 
     public NodeRB<AnyType> getParent() {
-        return parent;
+        return this.parent;
     }
 
     public void setParent(NodeRB<AnyType> parent) {
@@ -54,11 +54,11 @@ class NodeRB<AnyType> {
     }
 
     public boolean isRed() {
-        return color == Color.RED;
+        return this.color == Color.RED;
     }
 
     public Color getColor() {
-        return color;
+        return this.color;
     }
 
     public void setColor(Color color) {
@@ -71,12 +71,11 @@ public class RBTree<T extends Comparable<T>> implements BalancedTree<T> {
     private NodeRB<T> root;
 
     private boolean isRed(NodeRB<T> node) {
-        if (node == null) return false;
-        return node.isRed();
+        return node != null && node.isRed();
     }
 
     private NodeRB<T> rotateLeft(NodeRB<T> parent) {
-        System.out.println("Rotação à esquerda em " + parent.getElement());
+        System.out.println("Left rotation at " + parent.getElement());
 
         NodeRB<T> newRoot = parent.getRight();
         parent.setRight(newRoot.getLeft());
@@ -87,7 +86,7 @@ public class RBTree<T extends Comparable<T>> implements BalancedTree<T> {
     }
 
     private NodeRB<T> rotateRight(NodeRB<T> parent) {
-        System.out.println("Rotação à direita em " + parent.getElement());
+        System.out.println("Right rotation at " + parent.getElement());
 
         NodeRB<T> newRoot = parent.getLeft();
         parent.setLeft(newRoot.getRight());
@@ -98,7 +97,7 @@ public class RBTree<T extends Comparable<T>> implements BalancedTree<T> {
     }
 
     private void flipColors(NodeRB<T> node) {
-        System.out.println("Flip de cores em " + node.getElement());
+        System.out.println("Color flip at " + node.getElement());
         node.setColor(NodeRB.Color.RED);
         if (node.getLeft() != null) {
             node.getLeft().setColor(NodeRB.Color.BLACK);
@@ -109,75 +108,70 @@ public class RBTree<T extends Comparable<T>> implements BalancedTree<T> {
     }
 
     private NodeRB<T> moveRedLeft(NodeRB<T> node) {
-        flipColors(node);
-        if (node.getRight() != null && isRed(node.getRight().getLeft())) {
-            node.setRight(rotateRight(node.getRight()));
-            node = rotateLeft(node);
+        this.flipColors(node);
+        if (node.getRight() != null && this.isRed(node.getRight().getLeft())) {
+            node.setRight(this.rotateRight(node.getRight()));
+            node = this.rotateLeft(node);
         }
         return node;
     }
 
     private NodeRB<T> moveRedRight(NodeRB<T> node) {
-        flipColors(node);
-        if (node.getLeft() != null && isRed(node.getLeft().getLeft())) {
-            node = rotateRight(node);
+        this.flipColors(node);
+        if (node.getLeft() != null && this.isRed(node.getLeft().getLeft())) {
+            node = this.rotateRight(node);
         }
         return node;
     }
 
     private NodeRB<T> fixUp(NodeRB<T> node) {
-        if (isRed(node.getRight()))
-            node = rotateLeft(node);
-        if (isRed(node.getLeft()) && isRed(node.getLeft().getLeft()))
-            node = rotateRight(node);
-        if (isRed(node.getLeft()) && isRed(node.getRight()))
-            flipColors(node);
+        if (this.isRed(node.getRight()))
+            node = this.rotateLeft(node);
+        if (this.isRed(node.getLeft()) && this.isRed(node.getLeft().getLeft()))
+            node = this.rotateRight(node);
+        if (this.isRed(node.getLeft()) && this.isRed(node.getRight()))
+            this.flipColors(node);
         return node;
     }
 
-
-
     @Override
     public void insert(T value) {
-        root = insert(root, value);
-        root.setColor(NodeRB.Color.BLACK);
+        this.root = this.insert(this.root, value);
+        this.root.setColor(NodeRB.Color.BLACK);
     }
 
     private NodeRB<T> insert(NodeRB<T> current, T value) {
         if (current == null) return new NodeRB<>(value);
 
         int cmp = value.compareTo(current.getElement());
-        if (cmp < 0)
-            current.setLeft(insert(current.getLeft(), value));
-        else if (cmp > 0)
-            current.setRight(insert(current.getRight(), value));
-        else
-            ; // duplicatas não são inseridas
+        if (cmp < 0) {
+            current.setLeft(this.insert(current.getLeft(), value));
+        } else if (cmp > 0) {
+            current.setRight(this.insert(current.getRight(), value));
+        }
 
-        if (isRed(current.getRight()) && !isRed(current.getLeft()))
-            current = rotateLeft(current);
-        if (isRed(current.getLeft()) && isRed(current.getLeft().getLeft()))
-            current = rotateRight(current);
-        if (isRed(current.getLeft()) && isRed(current.getRight()))
-            flipColors(current);
+        if (this.isRed(current.getRight()) && !this.isRed(current.getLeft()))
+            current = this.rotateLeft(current);
+        if (this.isRed(current.getLeft()) && this.isRed(current.getLeft().getLeft()))
+            current = this.rotateRight(current);
+        if (this.isRed(current.getLeft()) && this.isRed(current.getRight()))
+            this.flipColors(current);
 
         return current;
     }
 
-
     @Override
     public boolean remove(T value) {
-        if (!find(value)) return false;
+        if (!this.find(value)) return false;
 
-        // se ambos filhos da raiz forem pretos, tornamos a raiz vermelha temporariamente
-        if (!isRed(root.getLeft()) && !isRed(root.getRight())) {
-            root.setColor(NodeRB.Color.RED);
+        if (!this.isRed(this.root.getLeft()) && !this.isRed(this.root.getRight())) {
+            this.root.setColor(NodeRB.Color.RED);
         }
 
-        root = remove(root, value);
+        this.root = this.remove(this.root, value);
 
-        if (root != null) {
-            root.setColor(NodeRB.Color.BLACK);
+        if (this.root != null) {
+            this.root.setColor(NodeRB.Color.BLACK);
         }
 
         return true;
@@ -185,33 +179,33 @@ public class RBTree<T extends Comparable<T>> implements BalancedTree<T> {
 
     private NodeRB<T> remove(NodeRB<T> current, T value) {
         if (value.compareTo(current.getElement()) < 0) {
-            if (!isRed(current.getLeft()) && !isRed(current.getLeft().getLeft())) {
-                current = moveRedLeft(current);
+            if (!this.isRed(current.getLeft()) && !this.isRed(current.getLeft().getLeft())) {
+                current = this.moveRedLeft(current);
             }
-            current.setLeft(remove(current.getLeft(), value));
+            current.setLeft(this.remove(current.getLeft(), value));
         } else {
-            if (isRed(current.getLeft())) {
-                current = rotateRight(current);
+            if (this.isRed(current.getLeft())) {
+                current = this.rotateRight(current);
             }
 
             if (value.compareTo(current.getElement()) == 0 && current.getRight() == null) {
                 return null;
             }
 
-            if (!isRed(current.getRight()) && !isRed(current.getRight().getLeft())) {
-                current = moveRedRight(current);
+            if (!this.isRed(current.getRight()) && !this.isRed(current.getRight().getLeft())) {
+                current = this.moveRedRight(current);
             }
 
             if (value.compareTo(current.getElement()) == 0) {
-                NodeRB<T> minNode = findMin(current.getRight());
+                NodeRB<T> minNode = this.findMin(current.getRight());
                 current.setElement(minNode.getElement());
-                current.setRight(removeMin(current.getRight()));
+                current.setRight(this.removeMin(current.getRight()));
             } else {
-                current.setRight(remove(current.getRight(), value));
+                current.setRight(this.remove(current.getRight(), value));
             }
         }
 
-        return fixUp(current);
+        return this.fixUp(current);
     }
 
     private NodeRB<T> findMin(NodeRB<T> node) {
@@ -224,17 +218,17 @@ public class RBTree<T extends Comparable<T>> implements BalancedTree<T> {
     private NodeRB<T> removeMin(NodeRB<T> node) {
         if (node.getLeft() == null) return null;
 
-        if (!isRed(node.getLeft()) && !isRed(node.getLeft().getLeft())) {
-            node = moveRedLeft(node);
+        if (!this.isRed(node.getLeft()) && !this.isRed(node.getLeft().getLeft())) {
+            node = this.moveRedLeft(node);
         }
 
-        node.setLeft(removeMin(node.getLeft()));
-        return fixUp(node);
+        node.setLeft(this.removeMin(node.getLeft()));
+        return this.fixUp(node);
     }
 
     @Override
     public boolean find(T value) {
-        NodeRB<T> current = root;
+        NodeRB<T> current = this.root;
         while (current != null) {
             int cmp = value.compareTo(current.getElement());
             if (cmp < 0) {
@@ -250,24 +244,24 @@ public class RBTree<T extends Comparable<T>> implements BalancedTree<T> {
 
     @Override
     public int getHeight() {
-        return calculateHeight(root);
+        return this.calculateHeight(this.root);
     }
 
     private int calculateHeight(NodeRB<T> node) {
         if (node == null) return -1;
-        return 1 + Math.max(calculateHeight(node.getLeft()), calculateHeight(node.getRight()));
+        return 1 + Math.max(this.calculateHeight(node.getLeft()), this.calculateHeight(node.getRight()));
     }
 
     @Override
     public void printInOrder() {
-        printInOrder(root);
+        this.printInOrder(this.root);
     }
 
     private void printInOrder(NodeRB<T> node) {
         if (node != null) {
-            printInOrder(node.getLeft());
+            this.printInOrder(node.getLeft());
             System.out.print(node.getElement() + " ");
-            printInOrder(node.getRight());
+            this.printInOrder(node.getRight());
         }
     }
 }

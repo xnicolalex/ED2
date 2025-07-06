@@ -1,15 +1,13 @@
 package Models;
 
-//import org.w3c.dom.Node;
-
-class NodeAVL<AnyType>{
+class NodeAVL<AnyType> {
     private AnyType element;
     private NodeAVL<AnyType> left;
     private NodeAVL<AnyType> right;
     private int height;
 
-    public NodeAVL( AnyType e ) {
-        this( e, null, null );
+    public NodeAVL(AnyType element) {
+        this(element, null, null);
     }
 
     public NodeAVL(AnyType element, NodeAVL<AnyType> left, NodeAVL<AnyType> right) {
@@ -30,7 +28,6 @@ class NodeAVL<AnyType>{
     public NodeAVL<AnyType> getRight() {
         return right;
     }
-
 
     public int getHeight() {
         return height;
@@ -56,140 +53,132 @@ class NodeAVL<AnyType>{
 public class AVLTree<T extends Comparable<T>> implements BalancedTree<T> {
     private NodeAVL<T> root;
 
-    public AVLTree(){
-        root = null;
+    private int comparisons = 0;
+    private int assignments = 0;
+
+    public AVLTree() {
+        this.root = null;
     }
 
-    // Métodos de altura
+    public int getComparisons() {
+        return this.comparisons;
+    }
+
+    public int getAssignments() {
+        return this.assignments;
+    }
+
+    public void resetCounters() {
+        this.comparisons = 0;
+        this.assignments = 0;
+    }
 
     private int calculateHeight(NodeAVL<T> node) {
-        if (node == null) {
-            return -1;
-        }
-
+        if (node == null) return -1;
         int leftHeight = calculateHeight(node.getLeft());
         int rightHeight = calculateHeight(node.getRight());
-
-        int maxHeight = Math.max(leftHeight, rightHeight);
-
-        return 1 + maxHeight;
+        return 1 + Math.max(leftHeight, rightHeight);
     }
 
-    private int getStoredHeight(NodeAVL<T> node){
-        if (node == null){
-            return -1;
-        } else {
-            return node.getHeight();
-        }
+    private int getStoredHeight(NodeAVL<T> node) {
+        return node == null ? -1 : node.getHeight();
     }
 
-    private int getMax(int a, int b){
+    private int getMax(int a, int b) {
         return Math.max(a, b);
     }
 
-
-    // Métodos de rotação
-    // Rotação simples com filho esquerdo
     private NodeAVL<T> rotateWithLeftChild(NodeAVL<T> parent) {
-        System.out.println("Rotação simples com filho esquerdo (LL) no nó: " + parent.getElement());
-
         NodeAVL<T> leftChild = parent.getLeft();
-        parent.setLeft(leftChild.getRight());
-        leftChild.setRight(parent);
+        parent.setLeft(leftChild.getRight()); this.assignments++;
+        leftChild.setRight(parent); this.assignments++;
 
-        parent.setHeight(getMax(getStoredHeight(parent.getLeft()), getStoredHeight(parent.getRight())) + 1);
-        leftChild.setHeight(getMax(getStoredHeight(leftChild.getLeft()), getStoredHeight(leftChild.getRight())) + 1);
+        parent.setHeight(getMax(getStoredHeight(parent.getLeft()), getStoredHeight(parent.getRight())) + 1); this.assignments++;
+        leftChild.setHeight(getMax(getStoredHeight(leftChild.getLeft()), getStoredHeight(leftChild.getRight())) + 1); this.assignments++;
 
         return leftChild;
     }
 
-    // Rotação simples com filho direito
     private NodeAVL<T> rotateWithRightChild(NodeAVL<T> parent) {
-        System.out.println("Rotação simples com filho direito (RR) no nó: " + parent.getElement());
-
         NodeAVL<T> rightChild = parent.getRight();
-        parent.setRight(rightChild.getLeft());
-        rightChild.setLeft(parent);
+        parent.setRight(rightChild.getLeft()); this.assignments++;
+        rightChild.setLeft(parent); this.assignments++;
 
-        parent.setHeight(getMax(getStoredHeight(parent.getLeft()), getStoredHeight(parent.getRight())) + 1);
-        rightChild.setHeight(getMax(getStoredHeight(rightChild.getLeft()), getStoredHeight(rightChild.getRight())) + 1);
+        parent.setHeight(getMax(getStoredHeight(parent.getLeft()), getStoredHeight(parent.getRight())) + 1); this.assignments++;
+        rightChild.setHeight(getMax(getStoredHeight(rightChild.getLeft()), getStoredHeight(rightChild.getRight())) + 1); this.assignments++;
 
         return rightChild;
     }
 
-    // Rotação dupla
     private NodeAVL<T> doubleWithLeftChild(NodeAVL<T> parent) {
-        System.out.println("Rotação dupla à esquerda (LR) no nó: " + parent.getElement());
-
-        parent.setLeft(rotateWithRightChild(parent.getLeft()));
+        parent.setLeft(rotateWithRightChild(parent.getLeft())); this.assignments++;
         return rotateWithLeftChild(parent);
     }
 
-    // Rotação dupla
     private NodeAVL<T> doubleWithRightChild(NodeAVL<T> parent) {
-        System.out.println("Rotação dupla à direita (RL) no nó: " + parent.getElement());
-
-        parent.setRight(rotateWithLeftChild(parent.getRight()));
+        parent.setRight(rotateWithLeftChild(parent.getRight())); this.assignments++;
         return rotateWithRightChild(parent);
     }
 
-
     @Override
     public void insert(T value) {
-        root = insert(value, root);
+        this.root = insert(value, this.root);
     }
 
     private NodeAVL<T> insert(T key, NodeAVL<T> node) {
         if (node == null) {
+            this.assignments++;
             return new NodeAVL<>(key);
         }
 
-        int compareResult = key.compareTo(node.getElement());
+        int compareResult = key.compareTo(node.getElement()); this.comparisons++;
 
         if (compareResult < 0) {
-            node.setLeft(insert(key, node.getLeft()));
-
+            node.setLeft(insert(key, node.getLeft())); this.assignments++;
             if (getStoredHeight(node.getLeft()) - getStoredHeight(node.getRight()) == 2) {
+                this.comparisons++;
                 if (key.compareTo(node.getLeft().getElement()) < 0) {
-                    node = rotateWithLeftChild(node); // LL
+                    this.comparisons++;
+                    node = rotateWithLeftChild(node);
                 } else {
-                    node = doubleWithLeftChild(node); // LR
+                    this.comparisons++;
+                    node = doubleWithLeftChild(node);
                 }
             }
         } else if (compareResult > 0) {
-            node.setRight(insert(key, node.getRight()));
-
+            node.setRight(insert(key, node.getRight())); this.assignments++;
             if (getStoredHeight(node.getRight()) - getStoredHeight(node.getLeft()) == 2) {
+                this.comparisons++;
                 if (key.compareTo(node.getRight().getElement()) > 0) {
-                    node = rotateWithRightChild(node); // RR
+                    this.comparisons++;
+                    node = rotateWithRightChild(node);
                 } else {
-                    node = doubleWithRightChild(node); // RL
+                    this.comparisons++;
+                    node = doubleWithRightChild(node);
                 }
             }
         }
 
-        node.setHeight(getMax(getStoredHeight(node.getLeft()), getStoredHeight(node.getRight())) + 1);
+        node.setHeight(getMax(getStoredHeight(node.getLeft()), getStoredHeight(node.getRight())) + 1); this.assignments++;
         return node;
     }
 
     @Override
     public boolean remove(T value) {
         boolean[] removed = {false};
-        root = remove(value, root, removed);
+        this.root = remove(value, this.root, removed);
         return removed[0];
     }
 
     private NodeAVL<T> remove(T value, NodeAVL<T> node, boolean[] removed) {
-        if (node == null) {
-            return null;
-        }
+        if (node == null) return null;
 
-        int compareResult = value.compareTo(node.getElement());
+        int compareResult = value.compareTo(node.getElement()); this.comparisons++;
 
         if (compareResult < 0) {
-            node.setLeft(remove(value, node.getLeft(), removed));
+            node.setLeft(remove(value, node.getLeft(), removed)); this.assignments++;
         } else if (compareResult > 0) {
-            node.setRight(remove(value, node.getRight(), removed));
+            node.setRight(remove(value, node.getRight(), removed)); this.assignments++;
         } else {
             removed[0] = true;
 
@@ -201,14 +190,14 @@ public class AVLTree<T extends Comparable<T>> implements BalancedTree<T> {
                 return node.getLeft();
             } else {
                 NodeAVL<T> successor = findMin(node.getRight());
-                node.setElement(successor.getElement());
-                node.setRight(remove(successor.getElement(), node.getRight(), new boolean[1]));
+                node.setElement(successor.getElement()); this.assignments++;
+                node.setRight(remove(successor.getElement(), node.getRight(), new boolean[1])); this.assignments++;
             }
         }
 
         if (node == null) return null;
 
-        node.setHeight(getMax(getStoredHeight(node.getLeft()), getStoredHeight(node.getRight())) + 1);
+        node.setHeight(getMax(getStoredHeight(node.getLeft()), getStoredHeight(node.getRight())) + 1); this.assignments++;
 
         int balanceFactor = getStoredHeight(node.getLeft()) - getStoredHeight(node.getRight());
 
@@ -235,17 +224,17 @@ public class AVLTree<T extends Comparable<T>> implements BalancedTree<T> {
         if (node == null) return null;
         while (node.getLeft() != null) {
             node = node.getLeft();
+            this.comparisons++;
         }
         return node;
     }
 
     @Override
     public boolean find(T value) {
-        NodeAVL<T> current = root;
+        NodeAVL<T> current = this.root;
 
         while (current != null) {
-            int compareResult = value.compareTo(current.getElement());
-
+            int compareResult = value.compareTo(current.getElement()); this.comparisons++;
             if (compareResult < 0) {
                 current = current.getLeft();
             } else if (compareResult > 0) {
@@ -256,22 +245,22 @@ public class AVLTree<T extends Comparable<T>> implements BalancedTree<T> {
         }
         return false;
     }
+
     @Override
     public int getHeight() {
-        return calculateHeight(root);
+        return calculateHeight(this.root);
     }
 
     @Override
     public void printInOrder() {
-        printInOrder(root);
+        printInOrder(this.root);
     }
 
     private void printInOrder(NodeAVL<T> node) {
-        if (node != null){
+        if (node != null) {
             printInOrder(node.getLeft());
             System.out.print(node.getElement() + " ");
             printInOrder(node.getRight());
         }
     }
 }
-

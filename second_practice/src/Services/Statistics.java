@@ -7,7 +7,7 @@ import java.util.List;
 
 public class Statistics {
 
-    private static final int[] RECORD_COUNTS = {10, 100, 1000, 10000, 100000};
+    private static final int[] RECORD_COUNTS = {10000};
     private static final int RUNS_PER_CASE = 10;
 
     public static void main(String[] args) {
@@ -27,6 +27,7 @@ public class Statistics {
                 DatasetReader reader = new DatasetReader();
                 generator.salvarCSV("temp.csv");
                 reader.readFromCSV("temp.csv");
+                System.out.println( "\n--- Dados carregados com sucesso ---" );
 
                 Simulation.SimulationResult result = Simulation.runSimulation(reader.getTransactions());
                 t.add(result.timeMillis);

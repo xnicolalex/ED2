@@ -6,6 +6,8 @@ public class HybridHash {
 
     private static class Entry {
         Object originStructure = null;
+        int idCollisions = 0;
+        int idInsertions = 0;
         int originCollisions = 0;
         int originInsertions = 0;
     }
@@ -78,24 +80,25 @@ public class HybridHash {
             LinkedList<Transaction> list = new LinkedList<>();
             list.add(t);
             entry.originStructure = list;
-            entry.originInsertions = 1;
+            entry.idInsertions = 1;
             assignments += 3;
         } else if (entry.originStructure instanceof LinkedList<?>) {
             @SuppressWarnings("unchecked")
             LinkedList<Transaction> list = (LinkedList<Transaction>) entry.originStructure;
             list.add(t);
-            entry.originInsertions++;
+            entry.idInsertions++;
             assignments += 2;
 
-            if (entry.originInsertions > 3) {
+            if (entry.idInsertions > 3) {
                 System.out.printf("[INFO] Converting LinkedList at index %d to AVLTree (by ID)%n", idx);
                 AVLTree<String, Transaction> avl = new AVLTree<>();
+                entry.idInsertions = 0;
                 for (Transaction tx : list) {
                     avl.insert(tx.getId(), tx);
                     comparisons++;
+                    entry.idInsertions++;
                 }
                 entry.originStructure = avl;
-                entry.originInsertions = 0;
                 assignments += 2;
             }
         } else if (entry.originStructure instanceof AVLTree<?, ?> tree) {
@@ -103,24 +106,26 @@ public class HybridHash {
             AVLTree<String, Transaction> avl = (AVLTree<String, Transaction>) tree;
             avl.insert(t.getId(), t);
             comparisons++;
-            entry.originInsertions++;
+            entry.idInsertions++;
             assignments++;
 
-            if (entry.originInsertions > 10) {
+            if (entry.idInsertions > 10) {
                 System.out.printf("[INFO] Converting AVLTree at index %d to RBTree (by ID)%n", idx);
                 RBTree<String, Transaction> rb = new RBTree<>();
+                entry.idInsertions = 0;
                 for (Transaction tx : avl.inOrder()) {
                     rb.insert(tx.getId(), tx);
                     comparisons++;
+                    entry.idInsertions++;
                 }
                 entry.originStructure = rb;
-                entry.originInsertions = 0;
                 assignments += 2;
             }
         } else if (entry.originStructure instanceof RBTree<?, ?> tree) {
             @SuppressWarnings("unchecked")
             RBTree<String, Transaction> rb = (RBTree<String, Transaction>) tree;
             rb.insert(t.getId(), t);
+            entry.idInsertions++;
             comparisons++;
         }
     }
@@ -132,7 +137,6 @@ public class HybridHash {
 
         while (true) {
             idxOrigin = this.hashOrigin(t.getOrigin(), attempts);
-            // System.out.printf("[DEBUG] Tentando inserir origem %s na tentativa %d (idx %d)\n", t.getOrigin(), attempts, idxOrigin);
 
             if (attempts == 0) {
                 first_origin = idxOrigin;
@@ -144,7 +148,7 @@ public class HybridHash {
             if (entry.originStructure == null) {
                 entry.originStructure = t;
                 entry.originCollisions = 0;
-                entry.originInsertions = 1;
+                entry.originInsertions++;
                 assignments += 3;
                 break;
             }
@@ -157,15 +161,15 @@ public class HybridHash {
             entry = table[first_origin];
 
             if (entry.originStructure instanceof Transaction) {
+                System.out.printf("[INFO] Converting Transaction at index %d to AVLTree (by Origin)%n", idxOrigin);
                 comparisons++;
-                LinkedList<Transaction> list = new LinkedList<>();
-                list.add((Transaction) entry.originStructure);
-                list.add(t);
-                entry.originStructure = list;
-                entry.originInsertions = 2;
+                AVLTree<String, Transaction> avlTree = new AVLTree<>();
+                avlTree.insert( ((Transaction) entry.originStructure).getOrigin(), (Transaction) entry.originStructure );
+                avlTree.insert(t.getOrigin(), t);
+                entry.originStructure = avlTree;
+                entry.originInsertions += 2;
                 assignments += 3;
                 break;
-
             } else if (entry.originStructure instanceof LinkedList<?> rawList &&
                     !rawList.isEmpty() &&
                     rawList.getFirst() instanceof Transaction) {
@@ -178,7 +182,7 @@ public class HybridHash {
                 assignments += 2;
                 comparisons++;
 
-                if (entry.originInsertions > 3) {
+                if (entry.idInsertions + entry.originInsertions > 3) {
                     System.out.printf("[INFO] Converting LinkedList at index %d to AVLTree (by Origin)%n", idxOrigin);
                     AVLTree<String, Transaction> avlTree = new AVLTree<>();
                     for (Transaction txx : castList) {
@@ -186,11 +190,9 @@ public class HybridHash {
                         comparisons++;
                     }
                     entry.originStructure = avlTree;
-                    entry.originInsertions = 0;
                     assignments += 2;
                 }
                 break;
-
             } else if (entry.originStructure instanceof AVLTree<?, ?> tree) {
                 @SuppressWarnings("unchecked")
                 AVLTree<String, Transaction> avl = (AVLTree<String, Transaction>) tree;
@@ -199,7 +201,7 @@ public class HybridHash {
                 entry.originInsertions++;
                 assignments++;
 
-                if (entry.originInsertions > 10) {
+                if (entry.originInsertions + entry.idInsertions > 10) {
                     System.out.printf("[INFO] Converting AVLTree at index %d to RBTree (by Origin)%n", idxOrigin);
                     RBTree<String, Transaction> rb = new RBTree<>();
                     for (Transaction txx : avl.inOrder()) {
@@ -207,7 +209,6 @@ public class HybridHash {
                         comparisons++;
                     }
                     entry.originStructure = rb;
-                    entry.originInsertions = 0;
                     assignments += 2;
                 }
                 break;
@@ -217,6 +218,7 @@ public class HybridHash {
                 RBTree<String, Transaction> rb = (RBTree<String, Transaction>) tree;
                 rb.insert(t.getOrigin(), t);
                 comparisons++;
+                entry.originInsertions++;
                 break;
             }
         }
@@ -227,17 +229,62 @@ public class HybridHash {
             Entry e = table[i];
             if (e.originStructure != null) {
                 System.out.print("[" + i + "] STRUCT: ");
-                if (e.originStructure instanceof Transaction t)
-                    System.out.print(t);
-                else if (e.originStructure instanceof List<?> list)
-                    System.out.print(list);
-                else if (e.originStructure instanceof AVLTree<?, ?>)
-                    System.out.print("[AVLTree]");
-                else if (e.originStructure instanceof RBTree<?, ?>)
-                    System.out.print("[RBTree]");
+                if (e.originStructure instanceof Transaction t) {
+                    System.out.println("[Transaction]");
+                    System.out.println(t);
+                } else if (e.originStructure instanceof List<?> list) {
+                    System.out.println("[Linked List]:");
+                    for ( Object t : list ){
+                        System.out.println( t );
+                    }
+                } else if (e.originStructure instanceof AVLTree<?, ?> tree) {
+                    System.out.println("[AVLTree]");
+                    System.out.println( tree );
+                } else if (e.originStructure instanceof RBTree<?, ?> tree) {
+                    System.out.println("[RBTree]");
+                    System.out.println(tree);
+                }
                 System.out.println();
             }
         }
+    }
+
+    public ArrayList<Transaction> searchByTimestamp(String startTimestamp, String endTimestamp) {
+        ArrayList<Transaction> result = new ArrayList<>();
+
+        // Traverse the table and search in each structure
+        for (int i = 0; i < this.size; i++) {
+            Entry entry = table[i];
+
+            if (entry.originStructure != null) {
+                if (entry.originStructure instanceof LinkedList<?>) {
+                    for (Object o : (LinkedList<?>) entry.originStructure) {
+                        comparisons++;
+                        if (o instanceof Transaction t) {
+                            if (isWithinTimestampRange(t.getTimestamp(), startTimestamp, endTimestamp)) {
+                                result.add(t);
+                            }
+                        }
+                    }
+                } else if (entry.originStructure instanceof AVLTree<?, ?> tree) {
+                    @SuppressWarnings("unchecked")
+                    AVLTree<String, Transaction> avl = (AVLTree<String, Transaction>) tree;
+                    result.addAll(avl.searchByTimestamp(startTimestamp, endTimestamp)); // Use the AVL method to find transactions
+                } else if (entry.originStructure instanceof RBTree<?, ?> tree) {
+                    @SuppressWarnings("unchecked")
+                    RBTree<String, Transaction> rb = (RBTree<String, Transaction>) tree;
+                    result.addAll(rb.searchByTimestamp(startTimestamp, endTimestamp)); // Use the RBTree method to find transactions
+                }
+            }
+        }
+
+        return result;
+    }
+
+    // Helper method to check if the transaction's timestamp is within the given range
+    private boolean isWithinTimestampRange(String transactionTimestamp, String startTimestamp, String endTimestamp) {
+        comparisons += 3;
+        return transactionTimestamp.compareTo(startTimestamp) >= 0 && transactionTimestamp.compareTo(endTimestamp) <= 0;
     }
 
     public int getComparisons() { return comparisons; }

@@ -12,14 +12,14 @@ public class Simulation {
 
         HybridHash hash = new HybridHash(512);
 
-        int insertions = 1;
-
         long startTime = System.nanoTime();
         try {
             for (Transaction t : transactions) {
                 hash.insert(t);
-                // System.out.printf("Inserindo transação de número %d.%n", insertions++);
             }
+
+            // Prints legais :D
+            hash.printTable();
         } catch (Exception e) {
             System.err.println("[EXCEÇÃO DETECTADA] " + e.getMessage());
             e.printStackTrace();
@@ -31,7 +31,7 @@ public class Simulation {
         int comparisons = hash.getComparisons();
         int assignments = hash.getAssignments();
 
-        System.out.printf("Finalizado em %d ms | Comparações: %d | Atribuições: %d%n",
+        System.out.printf("\nFinalizado em %d ms | Comparações: %d | Atribuições: %d%n",
                 durationMillis, comparisons, assignments);
 
         return new SimulationResult(comparisons, assignments, durationMillis);

@@ -27,6 +27,18 @@ class NodeRB<K extends Comparable<K>, V> {
     public void setColor(Color color) { this.color = color; }
 
     public boolean isRed() { return color == Color.RED; }
+
+    @Override
+    public String toString() {
+        return String.format(
+                "NodeRB{key=%s, value=%s, color=%s, left=%s, right=%s}",
+                getKey(),
+                getValue(),
+                color.name(),
+                (left != null ? left.getKey() : "null"),
+                (right != null ? right.getKey() : "null")
+        );
+    }
 }
 
 public class RBTree<K extends Comparable<K>, V> implements BalancedTree<K, V> {
@@ -126,6 +138,35 @@ public class RBTree<K extends Comparable<K>, V> implements BalancedTree<K, V> {
         return null;
     }
 
+    public ArrayList<Transaction> searchByTimestamp(String startTimestamp, String endTimestamp) {
+        ArrayList<Transaction> result = new ArrayList<>();
+        searchByTimestamp(root, startTimestamp, endTimestamp, result);
+        return result;
+    }
+
+    private void searchByTimestamp(NodeRB<K, V> node, String startTimestamp, String endTimestamp, ArrayList<Transaction> result) {
+        if (node == null) return;
+
+        // Check the timestamp of the current node
+        if (node.getValue() instanceof Transaction t){
+            if (isWithinTimestampRange(t.getTimestamp(), startTimestamp, endTimestamp)) {
+                result.add(t);
+            }
+
+            // Search in left subtree
+            searchByTimestamp(node.getLeft(), startTimestamp, endTimestamp, result);
+
+            // Search in right subtree
+            searchByTimestamp(node.getRight(), startTimestamp, endTimestamp, result);
+        }
+    }
+
+    // Helper method to check if the transaction's timestamp is within the given range
+    private boolean isWithinTimestampRange(String transactionTimestamp, String startTimestamp, String endTimestamp) {
+        comparisons += 3;
+        return transactionTimestamp.compareTo(startTimestamp) >= 0 && transactionTimestamp.compareTo(endTimestamp) <= 0;
+    }
+
     @Override
     public boolean remove(K key) {
         throw new UnsupportedOperationException("Remove not implemented");
@@ -175,5 +216,29 @@ public class RBTree<K extends Comparable<K>, V> implements BalancedTree<K, V> {
     public void resetCounters() {
         comparisons = 0;
         assignments = 0;
+    }
+
+    @Override
+    public String toString() {
+        // Simply initiate the preorder traversal and print each node
+        preorderPrint( root );
+        return ""; // You can return an empty string as the method signature requires a return
+    }
+
+    private void preorderPrint(NodeRB<K, V> node) {
+        if (node == null) return;
+
+        // Print the current node (in preorder)
+        System.out.println(node);
+
+        // Print left child (if exists)
+        if (node.getLeft() != null) {
+            preorderPrint(node.getLeft());
+        }
+
+        // Print right child (if exists)
+        if (node.getRight() != null) {
+            preorderPrint(node.getRight());
+        }
     }
 }

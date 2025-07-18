@@ -26,6 +26,18 @@ class NodeAVL<K extends Comparable<K>, V> {
     public TreeNode<K, V> getPair() { return pair; }
 
     public void setPair(TreeNode<K, V> pair) { this.pair = pair; }
+
+    @Override
+    public String toString() {
+        return String.format(
+                "NodeAVL{key=%s, value=%s, height=%d, left=%s, right=%s}",
+                getKey(),
+                getValue(),
+                height,
+                (left != null ? left.getKey() : "null"),
+                (right != null ? right.getKey() : "null")
+        );
+    }
 }
 
 public class AVLTree<K extends Comparable<K>, V> implements BalancedTree<K, V> {
@@ -149,6 +161,35 @@ public class AVLTree<K extends Comparable<K>, V> implements BalancedTree<K, V> {
         return null;
     }
 
+    public ArrayList<Transaction> searchByTimestamp(String startTimestamp, String endTimestamp) {
+        ArrayList<Transaction> result = new ArrayList<>();
+        searchByTimestamp(root, startTimestamp, endTimestamp, result);
+        return result;
+    }
+
+    private void searchByTimestamp(NodeAVL<K, V> node, String startTimestamp, String endTimestamp, ArrayList<Transaction> result) {
+        if (node == null) return;
+
+        // Check the timestamp of the current node
+        if (node.getValue() instanceof Transaction t){
+            if (isWithinTimestampRange(t.getTimestamp(), startTimestamp, endTimestamp)) {
+                result.add(t);
+            }
+
+            // Search in left subtree
+            searchByTimestamp(node.getLeft(), startTimestamp, endTimestamp, result);
+
+            // Search in right subtree
+            searchByTimestamp(node.getRight(), startTimestamp, endTimestamp, result);
+        }
+    }
+
+    // Helper method to check if the transaction's timestamp is within the given range
+    private boolean isWithinTimestampRange(String transactionTimestamp, String startTimestamp, String endTimestamp) {
+        comparisons += 3;
+        return transactionTimestamp.compareTo(startTimestamp) >= 0 && transactionTimestamp.compareTo(endTimestamp) <= 0;
+    }
+
     @Override
     public boolean remove(K key) {
         boolean[] removed = {false};
@@ -233,6 +274,30 @@ public class AVLTree<K extends Comparable<K>, V> implements BalancedTree<K, V> {
     public void resetCounters() {
         comparisons = 0;
         assignments = 0;
+    }
+
+    @Override
+    public String toString() {
+        // Simply initiate the preorder traversal and print each node
+        preorderPrint(root);
+        return ""; // You can return an empty string as the method signature requires a return
+    }
+
+    private void preorderPrint(NodeAVL<K, V> node) {
+        if (node == null) return;
+
+        // Print the current node (in preorder)
+        System.out.println(node);
+
+        // Print left child (if exists)
+        if (node.getLeft() != null) {
+            preorderPrint(node.getLeft());
+        }
+
+        // Print right child (if exists)
+        if (node.getRight() != null) {
+            preorderPrint(node.getRight());
+        }
     }
 }
 
